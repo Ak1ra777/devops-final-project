@@ -21,7 +21,7 @@ The project demonstrates a complete development and deployment workflow:
 Final deliverable:
 
 ```text
-PASTE_YOUR_GITHUB_REPOSITORY_LINK_HERE
+https://github.com/Ak1ra777/devops_midterm
 ```
 
 ---
@@ -174,7 +174,7 @@ docs: add project README and screenshots
 ### 1. Clone the repository
 
 ```bash
-git clone PASTE_YOUR_GITHUB_REPOSITORY_LINK_HERE
+git clone https://github.com/Ak1ra777/devops_midterm
 cd devops_midterm
 ```
 
@@ -572,44 +572,3 @@ if lsof -ti :8002 > /dev/null; then kill -9 $(lsof -ti :8002); fi
 ```
 
 ---
-
-## Screenshot Checklist
-
-The following screenshots are included in the README as proof:
-
-| Requirement | Screenshot path |
-|---|---|
-| Successful CI pipeline | `docs/screenshots/ci-success.png` |
-| Successful IaC execution | `docs/screenshots/iac-setup.png` |
-| Deployment process part 1 | `docs/screenshots/deployment-process-1.png` |
-| Deployment process part 2 | `docs/screenshots/deployment-process-2.png` |
-| Running app | `docs/screenshots/running-app.png` |
-| Monitoring logs | `docs/screenshots/monitoring-logs.png` |
-
----
-
-## Final Requirement Mapping
-
-| Requirement | Implementation |
-|---|---|
-| Small web application | React frontend + FastAPI backend |
-| Dynamic route | `/deployments/:version` and `/api/deployments/{version}` |
-| Input form / endpoint | `/new-deployment` form and `POST /api/deployments` |
-| Automated unit test | Pytest tests in `backend/tests/test_app.py` |
-| Two branches | `main` and `dev` |
-| CI on push / PR | GitHub Actions workflow |
-| Tests and linting in CI | Pytest, Ruff, ESLint, Vite build |
-| IaC / automation | `scripts/setup_env.sh` |
-| Local production deployment | `scripts/deploy_blue_green.sh` |
-| Blue-green simulation | `production/blue`, `production/green`, `production/current` |
-| Rollback | `scripts/rollback.sh` |
-| Monitoring | `scripts/monitor.sh` and `logs/health.log` |
-| Documentation | This README |
-
----
-
-## Final Submission
-
-The final submission is the GitHub repository link listed at the top of this README.
-
-All source code, scripts, workflow configuration, documentation, and screenshots are contained in this repository.
