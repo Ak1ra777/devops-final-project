@@ -1,3 +1,5 @@
+Davit Meshvelashvili
+
 # DevOps Midterm Project — Deployment Dashboard
 
 This repository contains a small full-stack DevOps project built for the DevOps midterm assignment.
@@ -16,15 +18,6 @@ The project demonstrates a complete development and deployment workflow:
 
 ---
 
-## Repository Link
-
-Final deliverable:
-
-```text
-https://github.com/Ak1ra777/devops_midterm
-```
-
----
 
 ## Tech Stack
 
