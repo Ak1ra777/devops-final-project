@@ -1,613 +1,398 @@
-Davit Meshvelashvili
+# DevOps Final Project - Deployment Dashboard
 
-# DevOps Midterm Project — Deployment Dashboard
+This repository contains a full-stack DevOps final project: a React/Vite deployment dashboard backed by a FastAPI API and improved with Docker Compose, CI/CD automation, monitoring, logging, alerting, security scans, local automation scripts, and reliability runbooks.
 
-This repository contains a small full-stack DevOps project built for the DevOps midterm assignment.
+The project runs fully on a local machine with Docker Compose. No paid cloud services, API keys, or external accounts are required for the local runtime.
 
-The project demonstrates a complete development and deployment workflow:
-
-- React + Vite frontend
-- FastAPI backend
-- Automated tests
-- Code linting
-- GitHub Actions CI
-- One-command environment setup
-- Local blue-green deployment simulation
-- Rollback mechanism
-- Health check monitoring with log output
+Repository: `https://github.com/Ak1ra777/devops-final-project`
 
 ---
 
+## Architecture
 
-## Tech Stack
+The application is split into a frontend container, a backend container, and an observability stack connected through a Docker Compose network.
 
-| Area | Tool |
+| Component | Purpose |
 |---|---|
-| Frontend | React + Vite |
-| Backend | FastAPI |
-| Backend package manager | uv |
-| Frontend package manager | npm |
-| Backend testing | Pytest |
-| Backend linting | Ruff |
-| Frontend linting | ESLint |
-| CI | GitHub Actions |
-| IaC / Automation | Bash scripts |
-| Local CD | Blue-green deployment simulation |
-| Monitoring | Bash + curl health checks |
-| Version control | Git + GitHub |
+| React + Vite frontend | User-facing deployment dashboard |
+| Nginx frontend container | Serves the production frontend build and proxies API requests |
+| FastAPI backend | Provides health, readiness, deployment, metrics, and test-error endpoints |
+| Docker Compose network | Connects backend, frontend, Prometheus, Grafana, Loki, and Promtail |
+| Prometheus | Scrapes backend metrics and evaluates alert rules |
+| Grafana | Displays dashboards using Prometheus and Loki datasources |
+| Loki | Stores application logs |
+| Promtail | Ships backend JSON logs to Loki |
+| GitHub Actions CI/CD | Runs tests, builds, security scans, and Docker validation |
+| Local scripts | Automate local startup, validation, security scans, monitoring, and rollback |
+
+```mermaid
+flowchart TD
+    User[User Browser] --> Frontend[Nginx + React Frontend]
+    Frontend --> Backend[FastAPI Backend]
+
+    Backend --> Logs[JSON Logs]
+    Backend --> Metrics[/metrics]
+
+    Metrics --> Prometheus[Prometheus]
+    Logs --> Promtail[Promtail]
+    Promtail --> Loki[Loki]
+    Prometheus --> Grafana[Grafana]
+    Loki --> Grafana
+
+    GitHub[GitHub Actions CI/CD] --> BackendChecks[Backend Tests + Ruff]
+    GitHub --> FrontendChecks[Frontend Lint + Build]
+    GitHub --> Security[Security Scans]
+    GitHub --> DockerValidation[Docker Compose Validation]
+
+    Scripts[Local Automation Scripts] --> Compose[Docker Compose Stack]
+    Compose --> Frontend
+    Compose --> Backend
+    Compose --> Prometheus
+    Compose --> Grafana
+    Compose --> Loki
+```
 
 ---
 
-## Project Structure
+## Features
+
+- Deployment dashboard frontend built with React and Vite
+- FastAPI backend API for deployment data
+- Backend health check endpoint: `/api/health`
+- Backend readiness endpoint: `/api/ready`
+- Prometheus metrics endpoint: `/metrics`
+- JSON request logs written by the backend
+- Simulated error endpoint for alert testing: `/api/simulate-error`
+- Docker Compose local runtime for app and observability services
+- Prometheus metrics scraping and alert rules
+- Grafana dashboard provisioning
+- Loki log storage and Promtail log shipping
+- GitHub Actions CI/CD with backend, frontend, security, and Docker validation jobs
+- Local automation scripts for startup, validation, security scans, monitoring, and rollback
+- Reliability documentation for rollback, incident response, and SLOs
+
+---
+
+## Repository Structure
 
 ```text
-devops_midterm/
+devops-final-project/
 ├── backend/
 │   ├── main.py
 │   ├── pyproject.toml
 │   ├── uv.lock
+│   ├── Dockerfile
 │   └── tests/
-│       └── test_app.py
 ├── frontend/
+│   ├── src/
 │   ├── package.json
 │   ├── package-lock.json
 │   ├── vite.config.js
-│   ├── index.html
-│   └── src/
-│       ├── App.jsx
-│       ├── App.css
-│       ├── index.css
-│       └── main.jsx
+│   ├── nginx.conf
+│   └── Dockerfile
+├── monitoring/
+│   ├── prometheus/
+│   ├── grafana/
+│   ├── loki/
+│   └── promtail/
 ├── scripts/
+│   ├── run_local.sh
+│   ├── validate_environment.sh
+│   ├── post_deploy_check.sh
+│   ├── security_scan.sh
 │   ├── setup_env.sh
 │   ├── deploy_blue_green.sh
 │   ├── rollback.sh
 │   └── monitor.sh
+├── docs/
+│   ├── ROLLBACK.md
+│   ├── INCIDENT_RESPONSE.md
+│   ├── SLO.md
+│   └── screenshots/
 ├── .github/
 │   └── workflows/
 │       └── ci.yml
-├── docs/
-│   └── screenshots/
-├── .gitignore
+├── docker-compose.yml
+├── .env.example
 └── README.md
 ```
 
-Generated runtime folders such as `production/`, `logs/`, `frontend/dist/`, and `node_modules/` are ignored by Git.
+Generated runtime folders and local files such as `.env`, `logs/`, `production/`, `frontend/dist/`, and `node_modules/` are ignored by Git.
 
 ---
 
 ## Prerequisites
 
-Before running the project, the following tools should be installed:
+Install these tools before running the project:
 
-```text
-Git
-Python 3.12
-uv
-Node.js
-npm
-curl
-lsof
-```
-
-The setup script prepares the project environment, installs project dependencies, creates local runtime folders, and runs checks.
+- Git
+- Docker and Docker Compose
+- Python 3.12 and `uv` for non-Docker backend checks
+- Node.js 22 and `npm` for non-Docker frontend checks
+- `curl`
 
 ---
 
-## Web Application Features
+## One-Command Local Execution
 
-The application is a **DevOps Deployment Dashboard**.
-
-It supports:
-
-- Viewing backend health status
-- Viewing deployment history
-- Opening deployment details by version
-- Creating a new deployment through a form
-- Running as a local production app through blue-green deployment
-
-### Frontend Routes
-
-| Route | Purpose |
-|---|---|
-| `/` | Dashboard page |
-| `/deployments/:version` | Dynamic deployment details page |
-| `/new-deployment` | Form page for creating a deployment |
-
-### Backend API Endpoints
-
-| Method | Endpoint | Purpose |
-|---|---|---|
-| `GET` | `/api/health` | Health check endpoint |
-| `GET` | `/api/ready` | Readiness check endpoint |
-| `GET` | `/api/deployments` | List deployments |
-| `GET` | `/api/deployments/{version}` | Dynamic deployment route |
-| `POST` | `/api/deployments` | Input endpoint for creating a deployment |
-
-This satisfies the web application requirement because the project includes a dynamic route, an input form/endpoint, and automated unit tests.
-
----
-
-## Git Branch Strategy
-
-The project uses two active branches:
-
-```text
-main
-dev
-```
-
-Development workflow:
-
-```text
-1. Work on dev
-2. Push dev
-3. Open pull request from dev to main
-4. GitHub Actions runs CI
-5. Merge only after CI passes
-```
-
-The project uses clean, descriptive commit messages such as:
-
-```text
-feat: add FastAPI backend with deployment API tests
-feat: build React deployment dashboard
-ci: add GitHub Actions workflow for tests and linting
-chore: add automated environment setup script
-feat: add local blue-green deployment script
-feat: add rollback script
-feat: add health monitoring script
-docs: add project README and screenshots
-```
-
----
-
-## Local Development Setup
-
-### 1. Clone the repository
-
-```bash
-git clone https://github.com/Ak1ra777/devops_midterm
-cd devops_midterm
-```
-
-### 2. Run automated environment setup
-
-The project includes a one-command environment setup script:
-
-```bash
-./scripts/setup_env.sh
-```
-
-This script:
-
-- Creates required runtime directories
-- Prepares the logs folder
-- Prepares local production folders
-- Installs backend dependencies using `uv`
-- Runs backend linting
-- Runs backend tests
-- Installs frontend dependencies using `npm`
-- Runs frontend linting
-- Builds the frontend
-
-This satisfies the IaC / automation requirement because environment preparation is automated through a single command.
-
-### Successful IaC Execution
-
-![Successful IaC execution](docs/screenshots/iac-setup.png)
-
----
-
-## Running the App in Development Mode
-
-Development mode uses two terminals.
-
-### Terminal 1 — Backend
-
-```bash
-cd backend
-uv run uvicorn main:app --reload
-```
-
-Backend runs at:
-
-```text
-http://127.0.0.1:8000
-```
-
-Useful backend URLs:
-
-```text
-http://127.0.0.1:8000/api/health
-http://127.0.0.1:8000/api/deployments
-http://127.0.0.1:8000/docs
-```
-
-### Terminal 2 — Frontend
-
-```bash
-cd frontend
-npm run dev
-```
-
-Frontend runs at:
-
-```text
-http://localhost:5173
-```
-
-In development mode, the React frontend calls the FastAPI backend at `http://127.0.0.1:8000`.
-
----
-
-## Local Docker Automation
-
-Use the Docker Compose helper to build, start, and validate the full local stack:
+Start the full local Docker Compose stack:
 
 ```bash
 ./scripts/run_local.sh
 ```
 
-Useful follow-up checks:
+The script:
+
+- Moves to the project root automatically
+- Prepares the `logs/` directory
+- Makes logs writable for the backend container
+- Creates `.env` from `.env.example` if `.env` is missing
+- Validates Docker Compose configuration
+- Builds images with fresh base images using `docker compose build --pull`
+- Starts services with `docker compose up -d`
+- Runs `./scripts/validate_environment.sh`
+
+Useful URLs after startup:
+
+| Service | URL |
+|---|---|
+| Frontend | `http://127.0.0.1:3000` |
+| Backend health | `http://127.0.0.1:8000/api/health` |
+| Backend docs | `http://127.0.0.1:8000/docs` |
+| Prometheus | `http://127.0.0.1:9090` |
+| Grafana | `http://127.0.0.1:3001` |
+| Loki | `http://127.0.0.1:3100` |
+
+Default Grafana credentials for local use come from `.env.example`:
+
+```text
+admin / admin
+```
+
+---
+
+## Manual Docker Compose Commands
+
+Use these commands if you want to run the stack manually:
+
+```bash
+docker compose config
+docker compose build --pull
+docker compose up -d
+docker compose ps
+docker compose down -v --remove-orphans
+```
+
+---
+
+## Local Validation Commands
+
+Run these commands after startup or while debugging:
 
 ```bash
 ./scripts/validate_environment.sh
 ./scripts/post_deploy_check.sh
 ./scripts/security_scan.sh
+./scripts/monitor.sh 2 2
 ```
 
-These scripts prepare local logs and `.env`, validate Docker Compose, check service health and readiness endpoints, run post-start API checks, and provide local security checks similar to CI.
+What they do:
+
+| Script | Purpose |
+|---|---|
+| `validate_environment.sh` | Checks Docker service health and readiness endpoints |
+| `post_deploy_check.sh` | Runs environment validation plus backend metrics, deployments API, and Prometheus target checks |
+| `security_scan.sh` | Runs local npm and Python dependency scans, plus optional local Gitleaks, Hadolint, and Trivy checks |
+| `monitor.sh` | Writes repeated health check results to `logs/health.log` |
 
 ---
 
-## Reliability Improvements
+## Non-Docker Development Checks
 
-The Docker Compose stack includes service health checks, `restart: unless-stopped` policies, and safer backend/frontend container privileges. Reliability operations are documented here:
-
-- [Rollback runbook](docs/ROLLBACK.md)
-- [Incident response runbook](docs/INCIDENT_RESPONSE.md)
-- [Service level objectives](docs/SLO.md)
-
-Use `./scripts/rollback.sh` for local blue-green rollback, `./scripts/post_deploy_check.sh` for post-start validation, and `./scripts/validate_environment.sh` for stack health checks.
-
----
-
-## Running Tests and Linting Locally
-
-### Backend
+Backend:
 
 ```bash
 cd backend
+uv sync --all-groups
 uv run ruff check .
 uv run pytest
 ```
 
-### Frontend
+Frontend:
 
 ```bash
 cd frontend
+npm ci
 npm run lint
 npm run build
 ```
 
----
-
-## Continuous Integration
-
-The project uses GitHub Actions.
-
-Workflow file:
-
-```text
-.github/workflows/ci.yml
-```
-
-The pipeline runs automatically on:
-
-```yaml
-push:
-pull_request:
-```
-
-The CI pipeline has four jobs.
-
-### Backend Job
-
-The backend job:
-
-1. Checks out the repository
-2. Installs `uv`
-3. Sets up Python 3.12
-4. Installs backend dependencies
-5. Runs Ruff linting
-6. Runs Pytest tests
-
-### Frontend Job
-
-The frontend job:
-
-1. Checks out the repository
-2. Sets up Node.js
-3. Installs frontend dependencies
-4. Runs ESLint
-5. Builds the React app
-
-### Security Job
-
-The security job runs Gitleaks secrets scanning, frontend `npm audit`, backend `pip-audit`, Dockerfile linting, and Trivy image vulnerability scans.
-
-### Docker Validation Job
-
-The Docker validation job checks Docker Compose syntax, builds the stack, starts it, waits for container health checks, verifies backend/frontend health endpoints, and checks Prometheus and Loki readiness.
-
-This satisfies the CI requirement because every push and pull request automatically runs tests, linting, security scans, Docker Compose validation, and post-start health checks.
-
-### Successful CI Pipeline
-
-![Successful CI pipeline](docs/screenshots/ci-success.png)
-
----
-
-## CI/CD Workflow Diagram
-
-```mermaid
-flowchart TD
-    A[Developer pushes code or opens PR] --> B[GitHub Actions CI starts]
-
-    B --> C[Backend job]
-    B --> D[Frontend job]
-    B --> S[Security job]
-    B --> V[Docker validation job]
-
-    C --> C1[Install uv and Python 3.12]
-    C1 --> C2[Install backend dependencies]
-    C2 --> C3[Run Ruff linting]
-    C3 --> C4[Run Pytest tests]
-
-    D --> D1[Install Node.js]
-    D1 --> D2[Install npm dependencies]
-    D2 --> D3[Run ESLint]
-    D3 --> D4[Build React frontend]
-
-    C4 --> E[CI result]
-    D4 --> E
-    S --> S1[Run secrets, dependency, Dockerfile, and image scans]
-    S1 --> E
-    V --> V1[Validate Compose, build, start, and check health endpoints]
-    V1 --> E
-
-    E --> F[Run setup_env.sh locally]
-    F --> G[Run blue-green deployment]
-    G --> H[Health-check target environment]
-    H --> I[Switch production/current]
-    I --> J[Monitor health logs]
-
-    H --> K[Rollback if needed]
-```
-
----
-
-## Infrastructure as Code / Automation
-
-Script:
-
-```text
-scripts/setup_env.sh
-```
-
-Run:
+The original local setup script is still available:
 
 ```bash
 ./scripts/setup_env.sh
 ```
 
-What it does:
+---
+
+## CI/CD Workflow
+
+GitHub Actions workflow:
 
 ```text
-1. Moves to the project root
-2. Creates logs and production folders
-3. Creates the health log file
-4. Installs backend dependencies
-5. Runs backend linting and tests
-6. Installs frontend dependencies
-7. Runs frontend linting and build
+.github/workflows/ci.yml
 ```
 
-This script automates environment preparation and can be executed with one command.
+The workflow runs on push and pull request and contains four jobs:
+
+| Job | What it does |
+|---|---|
+| Backend tests and linting | Installs backend dependencies with `uv`, runs Ruff, and runs Pytest |
+| Frontend linting and build | Installs frontend dependencies with `npm ci`, runs ESLint, and builds the frontend |
+| Security scans | Runs secrets, dependency, Dockerfile, and image security scans |
+| Docker Compose validation | Validates Compose, builds images, starts the stack, waits for health, checks endpoints, and cleans up |
+
+Security tools used in CI:
+
+- Gitleaks for secrets scanning
+- `npm audit` for frontend dependency vulnerabilities
+- `pip-audit` for backend dependency vulnerabilities
+- Hadolint for Dockerfile linting
+- Trivy for Docker image vulnerability scanning
+
+The Docker validation job checks:
+
+- `docker compose config`
+- `docker compose build --pull`
+- `docker compose up -d`
+- Backend health: `http://127.0.0.1:8000/api/health`
+- Frontend health: `http://127.0.0.1:3000/health`
+- Prometheus readiness: `http://127.0.0.1:9090/-/ready`
+- Loki readiness: `http://127.0.0.1:3100/ready`
+- Cleanup with `docker compose down -v --remove-orphans`
 
 ---
 
-## Local Blue-Green Deployment
+## Security Implementation
 
-The project simulates blue-green deployment locally.
+The project includes practical free security automation suitable for local development and GitHub Actions.
 
-Two production-like environments are used:
+Implemented security controls:
 
-| Environment | Port |
+- Dependency vulnerability scanning for frontend packages with `npm audit`
+- Dependency vulnerability scanning for backend packages with `pip-audit`
+- Container image vulnerability scanning with Trivy
+- Dockerfile linting with Hadolint
+- Secrets scanning with Gitleaks
+- No real secrets committed to the repository
+- `.env.example` is used for local configuration defaults
+- `.env` is ignored by Git
+- Backend and frontend containers use `security_opt: ["no-new-privileges:true"]`
+- Docker images are built with `--pull` in CI and local automation to avoid stale vulnerable base layers
+
+Local security scan:
+
+```bash
+./scripts/security_scan.sh
+```
+
+Optional local tools such as Gitleaks, Hadolint, and Trivy are skipped with warnings if they are not installed locally. CI still keeps those checks blocking.
+
+---
+
+## Monitoring, Logging, Observability, and Alerting
+
+The backend exposes Prometheus metrics at:
+
+```text
+http://127.0.0.1:8000/metrics
+```
+
+Important metrics include:
+
+- `app_requests_total`
+- `app_errors_total`
+- `app_request_duration_seconds`
+
+Prometheus scrapes the backend using the `fastapi-backend` scrape job. Grafana is provisioned with Prometheus and Loki datasources. The backend writes JSON request logs to `logs/backend.log`, Promtail reads those logs, and Loki stores them for querying through Grafana.
+
+Alert rules are defined in:
+
+```text
+monitoring/prometheus/alert_rules.yml
+```
+
+Current alerts:
+
+| Alert | Purpose |
 |---|---|
-| Blue | `8001` |
-| Green | `8002` |
+| `BackendDown` | Fires when Prometheus cannot scrape the backend |
+| `HighErrorRate` | Fires when backend server errors exceed the configured threshold |
+| `HighRequestLatency` | Fires when backend p95 latency is above the configured threshold |
 
-The active environment is stored in:
+The backend includes `/api/simulate-error` so error metrics and alert behavior can be tested intentionally.
 
-```text
-production/current
-```
+---
 
-The previous environment is stored in:
+## Reliability Improvements
 
-```text
-production/previous
-```
+Reliability features:
 
-In a real production system, a load balancer or reverse proxy would route users to blue or green. In this local simulation, the `production/current` file represents that routing decision.
+- Docker health checks for backend, frontend, Prometheus, Grafana, and Loki
+- `restart: unless-stopped` policies in Docker Compose
+- `./scripts/validate_environment.sh` for service and endpoint validation
+- `./scripts/post_deploy_check.sh` for post-start checks
+- `./scripts/monitor.sh` for repeated health monitoring with log output
+- `./scripts/rollback.sh` for local blue-green rollback
+- Reliability runbooks and SLO documentation
 
-### Run Deployment
+Reliability docs:
+
+- [Rollback runbook](docs/ROLLBACK.md)
+- [Incident response runbook](docs/INCIDENT_RESPONSE.md)
+- [Service level objectives](docs/SLO.md)
+
+The local blue-green deployment simulation remains available:
 
 ```bash
 ./scripts/deploy_blue_green.sh
-```
-
-Deployment behavior:
-
-```text
-1. Read current production color
-2. Choose the inactive color as the target
-3. Build the React frontend
-4. Copy backend and frontend build into the target production folder
-5. Start the target environment on its port
-6. Run health check
-7. If health check passes, update production/current
-8. Save the old environment in production/previous
-```
-
-Example:
-
-```text
-Current production: blue
-Deploying new version to: green
-Target port: 8002
-Running health check...
-Deployment successful.
-Previous production: blue
-Current production: green
-```
-
-If current production is blue, open:
-
-```text
-http://127.0.0.1:8001
-```
-
-If current production is green, open:
-
-```text
-http://127.0.0.1:8002
-```
-
-### Deployment Process
-
-![Blue-green deployment process part 1](docs/screenshots/deployment-process-1.png)
-
-![Blue-green deployment process part 2](docs/screenshots/deployment-process-2.png)
-
-### Running App
-
-![Running app](docs/screenshots/running-app.png)
-
----
-
-## Rollback Mechanism
-
-The project includes a rollback script:
-
-```text
-scripts/rollback.sh
-```
-
-Run:
-
-```bash
 ./scripts/rollback.sh
 ```
 
-Rollback behavior:
+---
 
-```text
-1. Read production/current
-2. Read production/previous
-3. Health-check the previous environment
-4. Switch current back to previous
-5. Store the old current as previous
-```
+## Screenshots Checklist
 
-Example:
+Existing screenshots are kept under `docs/screenshots/`. Additional final-project screenshots can be added there before submission.
 
-```text
-Current production: green
-Rolling back to: blue
-Checking rollback target health...
-Rollback successful.
-Current production is now: blue
-Previous production is now: green
-```
+| Screenshot | Path | Status |
+|---|---|---|
+| CI successful | `docs/screenshots/ci-success.png` | Existing |
+| Frontend dashboard / running app | `docs/screenshots/running-app.png` | Existing |
+| Local setup script passing | `docs/screenshots/iac-setup.png` | Existing |
+| Blue-green deployment process | `docs/screenshots/deployment-process-1.png` | Existing |
+| Blue-green deployment process | `docs/screenshots/deployment-process-2.png` | Existing |
+| Monitoring logs | `docs/screenshots/monitoring-logs.png` | Existing |
+| Security scans successful | `docs/screenshots/security-scans-success.png` | Placeholder needed |
+| Docker validation successful | `docs/screenshots/docker-validation-success.png` | Placeholder needed |
+| `docker compose ps` healthy services | `docs/screenshots/docker-compose-healthy.png` | Placeholder needed |
+| Backend health endpoint | `docs/screenshots/backend-health.png` | Placeholder needed |
+| Prometheus targets | `docs/screenshots/prometheus-targets.png` | Placeholder needed |
+| Prometheus alerts | `docs/screenshots/prometheus-alerts.png` | Placeholder needed |
+| Grafana dashboard | `docs/screenshots/grafana-dashboard.png` | Placeholder needed |
+| Loki logs | `docs/screenshots/loki-logs.png` | Placeholder needed |
+| Local scripts passing | `docs/screenshots/local-scripts-passing.png` | Placeholder needed |
+| Reliability docs or runbook | `docs/screenshots/reliability-runbooks.png` | Placeholder optional |
 
-This satisfies the rollback requirement because the project can revert from one local production environment to the previous one.
+Placeholder rows are documentation targets only; add the image files when those screenshots are captured.
 
 ---
 
-## Monitoring and Health Check
+## Submission Notes
 
-The project includes a monitoring script:
+- GitHub repository: `https://github.com/Ak1ra777/devops-final-project`
+- The project is documented in this README.
+- The full application and observability stack run locally with Docker Compose.
+- CI/CD, security scanning, Docker validation, local automation, monitoring, alerting, and reliability documentation are included.
+- No paid cloud services are required.
 
-```text
-scripts/monitor.sh
-```
-
-Run a short demo:
-
-```bash
-./scripts/monitor.sh 2 3
-```
-
-This means:
-
-```text
-Check every 2 seconds
-Stop after 3 checks
-```
-
-Run continuously:
-
-```bash
-./scripts/monitor.sh
-```
-
-The script:
-
-```text
-1. Reads production/current
-2. Chooses the correct production port
-3. Calls /api/health
-4. Appends the result to logs/health.log
-```
-
-Example log output:
-
-```text
-2026-05-02 20:45:29 HEALTH OK environment=green url=http://127.0.0.1:8002/api/health
-2026-05-02 20:45:31 HEALTH OK environment=green url=http://127.0.0.1:8002/api/health
-2026-05-02 20:45:33 HEALTH OK environment=green url=http://127.0.0.1:8002/api/health
-```
-
-### Monitoring Logs
-
-![Monitoring logs](docs/screenshots/monitoring-logs.png)
-
----
-
-## Stopping Local Production Processes
-
-The deployment script starts blue and green environments in the background.
-
-To stop blue:
-
-```bash
-kill -9 $(lsof -ti :8001)
-```
-
-To stop green:
-
-```bash
-kill -9 $(lsof -ti :8002)
-```
-
-Safe version:
-
-```bash
-if lsof -ti :8001 > /dev/null; then kill -9 $(lsof -ti :8001); fi
-if lsof -ti :8002 > /dev/null; then kill -9 $(lsof -ti :8002); fi
-```
-
----
