@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Stop the script if any command fails
-set -e
+set -euo pipefail
 
 # Move to project root
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -26,6 +26,12 @@ fi
 CURRENT="$(cat "$CURRENT_FILE")"
 PREVIOUS="$(cat "$PREVIOUS_FILE")"
 
+# Validate current environment
+if [ "$CURRENT" != "blue" ] && [ "$CURRENT" != "green" ]; then
+  echo "Rollback failed: invalid current environment: $CURRENT"
+  exit 1
+fi
+
 # Validate previous environment
 if [ "$PREVIOUS" != "blue" ] && [ "$PREVIOUS" != "green" ]; then
   echo "Rollback failed: invalid previous environment: $PREVIOUS"
@@ -44,7 +50,7 @@ echo "Rolling back to: $PREVIOUS"
 
 # Check that previous environment is healthy before switching
 echo "Checking rollback target health..."
-curl --fail "http://127.0.0.1:$ROLLBACK_PORT/api/health" > /dev/null
+curl --fail --silent --show-error "http://127.0.0.1:$ROLLBACK_PORT/api/health" > /dev/null
 
 # Swap current and previous
 echo "$CURRENT" > "$PREVIOUS_FILE"
@@ -54,3 +60,4 @@ echo "Rollback successful."
 echo "Current production is now: $PREVIOUS"
 echo "Previous production is now: $CURRENT"
 echo "Rollback target health: http://127.0.0.1:$ROLLBACK_PORT/api/health"
+echo "Next validation: ./scripts/post_deploy_check.sh"

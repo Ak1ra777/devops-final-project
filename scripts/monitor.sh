@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Stop the script if any required command fails unexpectedly
-set -e
+set -euo pipefail
 
 # Move to project root
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -25,44 +25,45 @@ MAX_CHECKS="${2:-0}"
 mkdir -p "$PROJECT_ROOT/logs"
 touch "$LOG_FILE"
 
-# Make sure current production state exists
-if [ ! -f "$CURRENT_FILE" ]; then
-  echo "Monitoring failed: production/current does not exist."
-  echo "Run ./scripts/deploy_blue_green.sh first."
-  exit 1
-fi
-
 echo "Starting health monitoring..."
 echo "Logging results to: $LOG_FILE"
 echo "Interval: ${INTERVAL_SECONDS}s"
+echo "Max checks: ${MAX_CHECKS}"
 
 COUNT=0
+FAILED=0
 
 while true; do
-  # Read current production color
-  CURRENT="$(cat "$CURRENT_FILE")"
+  # Prefer the blue-green deployment state when it exists.
+  if [ -f "$CURRENT_FILE" ]; then
+    CURRENT="$(cat "$CURRENT_FILE")"
 
-  # Choose port based on current production color
-  if [ "$CURRENT" = "blue" ]; then
-    PORT="$BLUE_PORT"
-  elif [ "$CURRENT" = "green" ]; then
-    PORT="$GREEN_PORT"
+    if [ "$CURRENT" = "blue" ]; then
+      PORT="$BLUE_PORT"
+    elif [ "$CURRENT" = "green" ]; then
+      PORT="$GREEN_PORT"
+    else
+      echo "Invalid production/current value: $CURRENT"
+      exit 1
+    fi
+
+    HEALTH_URL="http://127.0.0.1:$PORT/api/health"
   else
-    echo "Invalid production/current value: $CURRENT"
-    exit 1
+    # If blue-green has not been deployed, monitor the Docker Compose backend.
+    CURRENT="compose"
+    PORT="${BACKEND_PORT:-8000}"
+    HEALTH_URL="http://127.0.0.1:$PORT/api/health"
   fi
-
-  # Build health check URL
-  HEALTH_URL="http://127.0.0.1:$PORT/api/health"
 
   # Create timestamp for log line
   TIMESTAMP="$(date '+%Y-%m-%d %H:%M:%S')"
 
   # Run health check and write result to log file
-  if curl --silent --fail "$HEALTH_URL" > /dev/null; then
+  if curl --silent --fail --max-time 5 "$HEALTH_URL" > /dev/null; then
     echo "$TIMESTAMP HEALTH OK environment=$CURRENT url=$HEALTH_URL" | tee -a "$LOG_FILE"
   else
     echo "$TIMESTAMP HEALTH FAIL environment=$CURRENT url=$HEALTH_URL" | tee -a "$LOG_FILE"
+    FAILED=1
   fi
 
   # Increase check counter
@@ -71,6 +72,10 @@ while true; do
   # Stop after MAX_CHECKS if a limit was provided
   if [ "$MAX_CHECKS" -gt 0 ] && [ "$COUNT" -ge "$MAX_CHECKS" ]; then
     echo "Monitoring completed after $COUNT checks."
+    if [ "$FAILED" -ne 0 ]; then
+      echo "One or more health checks failed."
+      exit 1
+    fi
     break
   fi
 
