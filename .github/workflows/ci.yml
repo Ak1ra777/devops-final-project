@@ -151,7 +151,7 @@ jobs:
           failure-threshold: error
 
       - name: Build Docker images for scanning
-        run: docker compose build backend frontend
+        run: docker compose build --pull backend frontend
 
       - name: Scan backend Docker image
         uses: aquasecurity/trivy-action@v0.36.0
@@ -187,7 +187,7 @@ jobs:
         run: docker compose config
 
       - name: Build Docker Compose images
-        run: docker compose build
+        run: docker compose build --pull
 
       - name: Prepare writable log directory
         run: |
