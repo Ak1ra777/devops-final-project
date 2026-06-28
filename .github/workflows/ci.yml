@@ -6,6 +6,10 @@ on:
   push:
   pull_request:
 
+permissions:
+  contents: read
+  pull-requests: read
+
 # A workflow is made of one or more jobs
 jobs:
   # Backend job: checks the FastAPI/Python side
@@ -79,3 +83,188 @@ jobs:
       # Build the React app to make sure production compilation works
       - name: Build frontend
         run: npm run build
+
+  # Security job: scans secrets, dependencies, Dockerfiles, and built images
+  security:
+    name: Security scans
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run Gitleaks secrets scan
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Run frontend dependency audit
+        working-directory: frontend
+        run: npm audit --audit-level=high
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Export backend dependencies
+        working-directory: backend
+        run: |
+          uv export \
+            --frozen \
+            --all-groups \
+            --format requirements.txt \
+            --no-emit-project \
+            --no-hashes \
+            --output-file /tmp/backend-requirements.txt
+
+      - name: Run backend dependency audit
+        run: uv tool run --from pip-audit pip-audit --requirement /tmp/backend-requirements.txt --strict
+
+      - name: Lint backend Dockerfile
+        uses: hadolint/hadolint-action@v3.1.0
+        with:
+          dockerfile: backend/Dockerfile
+          failure-threshold: error
+
+      - name: Lint frontend Dockerfile
+        uses: hadolint/hadolint-action@v3.1.0
+        with:
+          dockerfile: frontend/Dockerfile
+          failure-threshold: error
+
+      - name: Build Docker images for scanning
+        run: docker compose build --pull backend frontend
+
+      - name: Scan backend Docker image
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: devops-final-backend:local
+          format: table
+          exit-code: "1"
+          ignore-unfixed: true
+          vuln-type: os,library
+          severity: HIGH,CRITICAL
+
+      - name: Scan frontend Docker image
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: devops-final-frontend:local
+          format: table
+          exit-code: "1"
+          ignore-unfixed: true
+          vuln-type: os,library
+          severity: HIGH,CRITICAL
+
+  # Docker validation job: proves the Docker Compose stack builds and starts
+  docker-validation:
+    name: Docker Compose validation
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Validate Docker Compose syntax
+        run: docker compose config
+
+      - name: Build Docker Compose images
+        run: docker compose build --pull
+
+      - name: Prepare writable log directory
+        run: |
+          mkdir -p logs
+          chmod 777 logs
+
+      - name: Start Docker Compose stack
+        run: docker compose up -d
+
+      - name: Wait for Docker health checks
+        run: |
+          wait_for_health() {
+            local service="$1"
+            local container_id
+            container_id="$(docker compose ps -q "$service")"
+
+            if [ -z "$container_id" ]; then
+              echo "No container found for $service"
+              return 1
+            fi
+
+            for i in {1..45}; do
+              status="$(docker inspect --format='{{.State.Health.Status}}' "$container_id")"
+              if [ "$status" = "healthy" ]; then
+                echo "$service is healthy"
+                return 0
+              fi
+
+              if [ "$status" = "unhealthy" ]; then
+                echo "$service is unhealthy"
+                docker compose logs --no-color "$service"
+                return 1
+              fi
+
+              echo "Waiting for $service health check ($i/45): $status"
+              sleep 2
+            done
+
+            echo "$service did not become healthy in time"
+            docker compose logs --no-color "$service"
+            return 1
+          }
+
+          wait_for_health backend
+          wait_for_health frontend
+          wait_for_health prometheus
+          wait_for_health loki
+
+      - name: Check service endpoints
+        run: |
+          check_url() {
+            local name="$1"
+            local url="$2"
+
+            for i in {1..30}; do
+              if curl --fail --silent --show-error "$url" >/dev/null; then
+                echo "$name endpoint is ready"
+                return 0
+              fi
+
+              echo "Waiting for $name endpoint ($i/30): $url"
+              sleep 2
+            done
+
+            echo "$name endpoint did not respond successfully: $url"
+            return 1
+          }
+
+          check_url "backend" "http://127.0.0.1:8000/api/health"
+          check_url "frontend" "http://127.0.0.1:3000/health"
+          check_url "Prometheus" "http://127.0.0.1:9090/-/ready"
+          check_url "Loki" "http://127.0.0.1:3100/ready"
+
+      - name: Show Docker Compose logs on failure
+        if: failure()
+        run: docker compose logs --no-color
+
+      - name: Stop Docker Compose stack
+        if: always()
+        run: docker compose down -v --remove-orphans

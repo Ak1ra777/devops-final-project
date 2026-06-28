@@ -278,7 +278,7 @@ push:
 pull_request:
 ```
 
-The CI pipeline has two jobs.
+The CI pipeline has four jobs.
 
 ### Backend Job
 
@@ -301,7 +301,15 @@ The frontend job:
 4. Runs ESLint
 5. Builds the React app
 
-This satisfies the CI requirement because every push and pull request automatically runs tests and code linting.
+### Security Job
+
+The security job runs Gitleaks secrets scanning, frontend `npm audit`, backend `pip-audit`, Dockerfile linting, and Trivy image vulnerability scans.
+
+### Docker Validation Job
+
+The Docker validation job checks Docker Compose syntax, builds the stack, starts it, waits for container health checks, verifies backend/frontend health endpoints, and checks Prometheus and Loki readiness.
+
+This satisfies the CI requirement because every push and pull request automatically runs tests, linting, security scans, Docker Compose validation, and post-start health checks.
 
 ### Successful CI Pipeline
 
@@ -317,6 +325,8 @@ flowchart TD
 
     B --> C[Backend job]
     B --> D[Frontend job]
+    B --> S[Security job]
+    B --> V[Docker validation job]
 
     C --> C1[Install uv and Python 3.12]
     C1 --> C2[Install backend dependencies]
@@ -330,6 +340,10 @@ flowchart TD
 
     C4 --> E[CI result]
     D4 --> E
+    S --> S1[Run secrets, dependency, Dockerfile, and image scans]
+    S1 --> E
+    V --> V1[Validate Compose, build, start, and check health endpoints]
+    V1 --> E
 
     E --> F[Run setup_env.sh locally]
     F --> G[Run blue-green deployment]
