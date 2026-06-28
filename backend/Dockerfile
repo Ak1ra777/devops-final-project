@@ -18,10 +18,12 @@ ENV PATH="/app/.venv/bin:$PATH" \
 
 WORKDIR /app
 
-RUN groupadd --system app \
-    && useradd --system --gid app --home-dir /app app
+RUN groupadd --gid 1000 app \
+    && useradd --uid 1000 --gid app --home-dir /app --shell /usr/sbin/nologin app
 
 COPY --from=builder --chown=app:app /app /app
+RUN mkdir -p /app/logs \
+    && chown -R app:app /app
 
 USER app
 
