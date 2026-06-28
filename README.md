@@ -31,7 +31,7 @@ flowchart TD
     Frontend --> Backend[FastAPI Backend]
 
     Backend --> Logs[JSON Logs]
-    Backend --> Metrics[/metrics]
+    Backend --> Metrics["/metrics"]
 
     Metrics --> Prometheus[Prometheus]
     Logs --> Promtail[Promtail]
