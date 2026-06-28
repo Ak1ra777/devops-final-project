@@ -1,0 +1,32 @@
+groups:
+  - name: backend-observability
+    rules:
+      - alert: BackendDown
+        expr: up{job="fastapi-backend"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: backend
+        annotations:
+          summary: FastAPI backend target is down
+          description: Prometheus has not been able to scrape the backend target for more than 1 minute.
+
+      - alert: HighErrorRate
+        expr: sum(increase(app_errors_total{job="fastapi-backend"}[1m])) > 5
+        for: 0m
+        labels:
+          severity: critical
+          service: backend
+        annotations:
+          summary: FastAPI backend is returning too many errors
+          description: The backend returned more than 5 server errors in the last minute.
+
+      - alert: HighRequestLatency
+        expr: histogram_quantile(0.95, sum(rate(app_request_duration_seconds_bucket{job="fastapi-backend"}[5m])) by (le)) > 1
+        for: 2m
+        labels:
+          severity: warning
+          service: backend
+        annotations:
+          summary: FastAPI backend p95 latency is high
+          description: The p95 backend request latency has been above 1 second for more than 2 minutes.
