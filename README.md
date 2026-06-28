@@ -361,30 +361,75 @@ The local blue-green deployment simulation remains available:
 
 ---
 
-## Screenshots Checklist
+## Screenshots / Evidence
 
-Existing screenshots are kept under `docs/screenshots/`. Additional final-project screenshots can be added there before submission.
+### CI/CD Pipeline
 
-| Screenshot | Path | Status |
-|---|---|---|
-| CI successful | `docs/screenshots/ci-success.png` | Existing |
-| Frontend dashboard / running app | `docs/screenshots/running-app.png` | Existing |
-| Local setup script passing | `docs/screenshots/iac-setup.png` | Existing |
-| Blue-green deployment process | `docs/screenshots/deployment-process-1.png` | Existing |
-| Blue-green deployment process | `docs/screenshots/deployment-process-2.png` | Existing |
-| Monitoring logs | `docs/screenshots/monitoring-logs.png` | Existing |
-| Security scans successful | `docs/screenshots/security-scans-success.png` | Placeholder needed |
-| Docker validation successful | `docs/screenshots/docker-validation-success.png` | Placeholder needed |
-| `docker compose ps` healthy services | `docs/screenshots/docker-compose-healthy.png` | Placeholder needed |
-| Backend health endpoint | `docs/screenshots/backend-health.png` | Placeholder needed |
-| Prometheus targets | `docs/screenshots/prometheus-targets.png` | Placeholder needed |
-| Prometheus alerts | `docs/screenshots/prometheus-alerts.png` | Placeholder needed |
-| Grafana dashboard | `docs/screenshots/grafana-dashboard.png` | Placeholder needed |
-| Loki logs | `docs/screenshots/loki-logs.png` | Placeholder needed |
-| Local scripts passing | `docs/screenshots/local-scripts-passing.png` | Placeholder needed |
-| Reliability docs or runbook | `docs/screenshots/reliability-runbooks.png` | Placeholder optional |
+![CI pipeline passing](docs/screenshots/ci-success.png)
 
-Placeholder rows are documentation targets only; add the image files when those screenshots are captured.
+CI pipeline passing with backend, frontend, security, and Docker validation jobs.
+
+### Security Automation
+
+![Security scans passing](docs/screenshots/security-scans.png)
+
+Security job with dependency scanning, secrets scanning, Dockerfile linting, and image scanning.
+
+### Docker Compose Validation
+
+![Docker validation passing](docs/screenshots/docker-validation-success.png)
+
+Docker validation job passing in GitHub Actions.
+
+### Local Docker Compose Stack
+
+![Docker Compose services healthy](docs/screenshots/docker-compose-healthy.png)
+
+Local Docker Compose services running and healthy.
+
+### Frontend Application
+
+![Frontend dashboard](docs/screenshots/frontend-dashboard.png)
+
+React/Vite deployment dashboard running locally.
+
+### Backend Health Check
+
+![Backend health check](docs/screenshots/backend-health.png)
+
+FastAPI `/api/health` endpoint returning healthy JSON.
+
+### Prometheus Monitoring
+
+![Prometheus targets](docs/screenshots/prometheus-targets.png)
+
+Prometheus target scraping backend successfully.
+
+![Prometheus alerts](docs/screenshots/prometheus-alerts.png)
+
+Prometheus alert rules loaded.
+
+### Grafana Observability
+
+![Grafana dashboard](docs/screenshots/grafana-dashboard.png)
+
+Grafana dashboard visualizing metrics.
+
+### Loki Logging
+
+![Loki logs first view](docs/screenshots/loki-logs1.png)
+
+![Loki logs second view](docs/screenshots/loki-logs2.png)
+
+Backend JSON logs queried through Loki/Grafana Explore.
+
+### Local Automation Scripts
+
+![Local scripts passing first view](docs/screenshots/local-scripts-passing1.png)
+
+![Local scripts passing second view](docs/screenshots/local-scripts-passing2.png)
+
+Local validation, post-deploy, security scan, and monitoring scripts passing.
 
 ---
 
@@ -395,4 +440,3 @@ Placeholder rows are documentation targets only; add the image files when those 
 - The full application and observability stack run locally with Docker Compose.
 - CI/CD, security scanning, Docker validation, local automation, monitoring, alerting, and reliability documentation are included.
 - No paid cloud services are required.
-
