@@ -154,7 +154,7 @@ jobs:
         run: docker compose build backend frontend
 
       - name: Scan backend Docker image
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: devops-final-backend:local
           format: table
@@ -164,7 +164,7 @@ jobs:
           severity: HIGH,CRITICAL
 
       - name: Scan frontend Docker image
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: devops-final-frontend:local
           format: table
@@ -188,6 +188,11 @@ jobs:
 
       - name: Build Docker Compose images
         run: docker compose build
+
+      - name: Prepare writable log directory
+        run: |
+          mkdir -p logs
+          chmod 777 logs
 
       - name: Start Docker Compose stack
         run: docker compose up -d
