@@ -19,6 +19,18 @@ def test_health_check_returns_ok():
     assert "uptime_seconds" in data
 
 
+def test_metrics_returns_prometheus_output():
+    response = client.get("/metrics")
+
+    assert response.status_code == 200
+    assert "text/plain" in response.headers["content-type"]
+
+    body = response.text
+
+    assert "app_requests_total" in body
+    assert "app_request_duration_seconds" in body
+
+
 def test_ready_check_returns_ready():
     response = client.get("/api/ready")
 
@@ -85,3 +97,13 @@ def test_create_deployment():
     assert data["status"] == "pending"
     assert data["owner"] == "akira"
     assert "created_at" in data
+
+
+def test_simulate_error_returns_500():
+    response = client.get("/api/simulate-error")
+
+    assert response.status_code == 500
+
+    data = response.json()
+
+    assert data["detail"] == "Simulated internal server error"

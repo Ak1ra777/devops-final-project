@@ -9,6 +9,8 @@ services:
       LOG_LEVEL: ${LOG_LEVEL:-info}
     ports:
       - "${BACKEND_PORT:-8000}:8000"
+    volumes:
+      - ./logs:/app/logs
     healthcheck:
       test:
         [
