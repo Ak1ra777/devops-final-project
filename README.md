@@ -241,6 +241,26 @@ In development mode, the React frontend calls the FastAPI backend at `http://127
 
 ---
 
+## Local Docker Automation
+
+Use the Docker Compose helper to build, start, and validate the full local stack:
+
+```bash
+./scripts/run_local.sh
+```
+
+Useful follow-up checks:
+
+```bash
+./scripts/validate_environment.sh
+./scripts/post_deploy_check.sh
+./scripts/security_scan.sh
+```
+
+These scripts prepare local logs and `.env`, validate Docker Compose, check service health and readiness endpoints, run post-start API checks, and provide local security checks similar to CI.
+
+---
+
 ## Running Tests and Linting Locally
 
 ### Backend
