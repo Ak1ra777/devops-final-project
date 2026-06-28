@@ -23,6 +23,8 @@ services:
       timeout: 5s
       retries: 5
       start_period: 10s
+    security_opt:
+      - no-new-privileges:true
     restart: unless-stopped
     networks:
       - app-network
@@ -43,6 +45,8 @@ services:
       timeout: 5s
       retries: 5
       start_period: 5s
+    security_opt:
+      - no-new-privileges:true
     restart: unless-stopped
     networks:
       - app-network

@@ -261,6 +261,18 @@ These scripts prepare local logs and `.env`, validate Docker Compose, check serv
 
 ---
 
+## Reliability Improvements
+
+The Docker Compose stack includes service health checks, `restart: unless-stopped` policies, and safer backend/frontend container privileges. Reliability operations are documented here:
+
+- [Rollback runbook](docs/ROLLBACK.md)
+- [Incident response runbook](docs/INCIDENT_RESPONSE.md)
+- [Service level objectives](docs/SLO.md)
+
+Use `./scripts/rollback.sh` for local blue-green rollback, `./scripts/post_deploy_check.sh` for post-start validation, and `./scripts/validate_environment.sh` for stack health checks.
+
+---
+
 ## Running Tests and Linting Locally
 
 ### Backend
